@@ -12,6 +12,9 @@ import LoginModal from './components/LoginModal';
 import LegalPedomanModal from './components/LegalPedomanModal';
 import { initialArticles, pendingArticles as initialPending } from './data/mockArticles';
 
+const STORAGE_KEY_ARTICLES = 'mediakita_portal_articles_v3';
+const STORAGE_KEY_PENDING = 'mediakita_portal_pending_v3';
+
 export default function App() {
   // ROLE PENGGUNA:
   // 'reader'      -> Pembaca Publik biasa (Tampilan bersih tanpa tab)
@@ -22,8 +25,59 @@ export default function App() {
 
   // VIEW AKTIF:
   const [currentView, setCurrentView] = useState('portal'); // 'portal' | 'dashboard' | 'editor' | 'admin' | 'article-detail'
-  const [articles, setArticles] = useState(initialArticles);
-  const [pendingList, setPendingList] = useState(initialPending);
+  
+  // SINKRONISASI DATA ARTIKEL & PERSISTENSI LOCAL STORAGE
+  const [articles, setArticles] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ARTICLES);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Koreksi otomatis jika ada artikel founder lama yang nilainya masih 24 (bug template awal)
+          return parsed.map(a => {
+            if (a.id && String(a.id).startsWith('founder-') && a.views === 24 && a.likes === 5) {
+              return { ...a, views: 0, likes: 0, royaltyAmount: 0 };
+            }
+            return a;
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Storage read error", e);
+    }
+    return initialArticles;
+  });
+
+  const [pendingList, setPendingList] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PENDING);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn("Pending storage read error", e);
+    }
+    return initialPending;
+  });
+
+  // Simpan perubahan ke LocalStorage secara otomatis
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_ARTICLES, JSON.stringify(articles));
+    } catch (e) {
+      console.warn("Storage write error", e);
+    }
+  }, [articles]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_PENDING, JSON.stringify(pendingList));
+    } catch (e) {
+      console.warn("Pending storage write error", e);
+    }
+  }, [pendingList]);
+
   const [activeCategory, setActiveCategory] = useState('Semua');
   const [selectedArticle, setSelectedArticle] = useState(null);
 
@@ -148,7 +202,27 @@ export default function App() {
   const leadArticle = filteredArticles.find(a => a.isLead) || filteredArticles[0];
 
   const handleSelectArticle = (article) => {
-    setSelectedArticle(article);
+    // 1. Tambah jumlah pembaca artikel secara real-time (+1 pembaca)
+    const nextViews = (article.views || 0) + 1;
+    const nextRoyalty = Math.round(nextViews * 25); // Royalti transparan
+
+    setArticles(prevArticles => prevArticles.map(a => {
+      if (a.id === article.id) {
+        return {
+          ...a,
+          views: nextViews,
+          royaltyAmount: nextRoyalty
+        };
+      }
+      return a;
+    }));
+
+    setSelectedArticle({
+      ...article,
+      views: nextViews,
+      royaltyAmount: nextRoyalty
+    });
+
     setCurrentView('article-detail');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -174,8 +248,8 @@ export default function App() {
       coverImage: articleData.coverImage || "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop&q=80",
       readingTime: `${readMinutes} min baca`,
       publishedAt: 'Baru saja',
-      views: 24,
-      likes: 5,
+      views: 0, // Murni 0 pembaca awal (bertambah otomatis saat dibaca pengunjung)
+      likes: 0,
       isLead: Boolean(articleData.isLead),
       royaltyAmount: 0,
       author: {
@@ -196,7 +270,7 @@ export default function App() {
       return [newArt, ...updated];
     });
 
-    alert(`✓ SELAMAT! Artikel Founder:\n"${newArt.title}"\nresmi TAYANG LANGSUNG di halaman utama Portal MediaKita!`);
+    alert(`✓ SELAMAT! Artikel Founder:\n"${newArt.title}"\nresmi TAYANG LANGSUNG di halaman utama Portal MediaKita!\n(Jumlah pembaca dimulai dari 0 dan terupdate real-time).`);
   };
 
   const handleApproveArticle = (item) => {
@@ -205,17 +279,39 @@ export default function App() {
       status: 'published',
       publishedAt: 'Baru saja',
       readingTime: '4 min baca',
-      views: 120,
-      likes: 12,
+      views: 0, // Dimulai dari 0 pembaca murni
+      likes: 0,
       coverImage: item.coverImage || "https://images.unsplash.com/photo-1509749837427-ac94a2553d0e?w=800&auto=format&fit=crop&q=80",
       author: typeof item.author === 'string'
         ? { name: item.author, role: "Kontributor Warga", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80", verified: true }
         : item.author,
-      royaltyAmount: 32000
+      royaltyAmount: 0
     };
     setArticles([approved, ...articles]);
     setPendingList(pendingList.filter(p => p.id !== item.id));
     alert(`Artikel "${item.title}" resmi disetujui & tayang di portal utama!`);
+  };
+
+  // =========================================================================
+  // FUNGSI KHUSUS FOUNDER: KOREKSI / RESET ANGKA PEMBACA REAL-TIME
+  // =========================================================================
+  const handleUpdateArticleViews = (articleId, newViews) => {
+    const safeViews = Math.max(0, parseInt(newViews, 10) || 0);
+    const safeRoyalty = Math.round(safeViews * 25);
+    setArticles(prevArticles => prevArticles.map(a => {
+      if (a.id === articleId) {
+        return { ...a, views: safeViews, royaltyAmount: safeRoyalty };
+      }
+      return a;
+    }));
+    if (selectedArticle && selectedArticle.id === articleId) {
+      setSelectedArticle(prev => ({
+        ...prev,
+        views: safeViews,
+        royaltyAmount: safeRoyalty
+      }));
+    }
+    alert(`✓ Jumlah pembaca artikel berhasil diperbarui menjadi ${safeViews.toLocaleString('id-ID')} pembaca!`);
   };
 
   const handleRejectArticle = (id) => {
@@ -399,10 +495,13 @@ export default function App() {
                 <span>{selectedArticle.publishedAt}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span>{selectedArticle.views.toLocaleString()} Pembaca</span>
+                <span className="flex items-center gap-1.5 text-stone-800 font-semibold bg-stone-100 px-2.5 py-1 rounded border border-stone-200">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
+                  <span>{(selectedArticle.views || 0).toLocaleString('id-ID')} Pembaca (Real-Time)</span>
+                </span>
                 <span>&bull;</span>
                 <span className="text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 border border-emerald-300 rounded">
-                  Royalti Penulis: 70% Aktif
+                  Royalti: Rp {(selectedArticle.royaltyAmount || 0).toLocaleString('id-ID')}
                 </span>
               </div>
             </div>
@@ -414,7 +513,7 @@ export default function App() {
                 className="w-full h-96 object-cover rounded border border-stone-300"
               />
               <p className="text-[11px] text-stone-500 mt-1 italic">
-                Dokumentasi lapangan kontributor MediaKita.
+                Dokumentasi liputan terverifikasi Redaksi MediaKita.
               </p>
             </div>
 
@@ -422,21 +521,39 @@ export default function App() {
               {selectedArticle.content}
             </div>
 
-            <div className="mt-10 p-5 bg-[#F5F2EB] border border-stone-300 flex items-center justify-between">
+            <div className="mt-10 p-5 bg-[#F5F2EB] border border-stone-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h4 className="font-bold text-xs uppercase tracking-wider text-stone-900">
-                  Dukung Jurnalis Warga
+                <h4 className="font-bold text-xs uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
+                  <span>⚡</span>
+                  <span>Dukungan Pembaca &amp; Bagi Hasil Royalti</span>
                 </h4>
-                <p className="text-xs text-stone-600 mt-0.5">
-                  Tulisan ini telah menghasilkan royalti Rp {selectedArticle.royaltyAmount?.toLocaleString() || '45.000'} dari trafik pembaca.
+                <p className="text-xs text-stone-600 mt-1 leading-relaxed">
+                  Artikel ini telah dibaca <strong className="text-stone-900">{(selectedArticle.views || 0).toLocaleString('id-ID')} kali</strong> secara real-time dan terakumulasi royalti <strong className="text-emerald-800">Rp {(selectedArticle.royaltyAmount || 0).toLocaleString('id-ID')}</strong> (skema bagi hasil 70% penulis).
                 </p>
               </div>
-              <button
-                onClick={() => alert("Tautan artikel berhasil disalin ke clipboard!")}
-                className="bg-stone-900 text-[#FAF8F5] text-xs font-semibold px-3 py-1.5 rounded"
-              >
-                Bagikan Naskah
-              </button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={() => {
+                    const nextLikes = (selectedArticle.likes || 0) + 1;
+                    setSelectedArticle(prev => ({ ...prev, likes: nextLikes }));
+                    setArticles(prevArticles => prevArticles.map(a => a.id === selectedArticle.id ? { ...a, likes: nextLikes } : a));
+                    alert("❤️ Terima kasih! Apresiasi pembaca berhasil ditambahkan.");
+                  }}
+                  className="bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 text-xs font-semibold px-3 py-1.5 rounded flex items-center gap-1.5 transition"
+                >
+                  <span>❤️ Apresiasi</span>
+                  <span className="font-bold">({selectedArticle.likes || 0})</span>
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(window.location.href);
+                    alert("✓ Tautan artikel berhasil disalin! Bagikan ke WhatsApp atau media sosial.");
+                  }}
+                  className="bg-stone-900 hover:bg-stone-800 text-[#FAF8F5] text-xs font-semibold px-3 py-1.5 rounded transition"
+                >
+                  Bagikan Naskah
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -474,6 +591,7 @@ export default function App() {
             onApproveKtp={handleApproveKtp}
             onRejectKtp={handleRejectKtp}
             onPublishFounderArticle={handlePublishFounderArticle}
+            onUpdateArticleViews={handleUpdateArticleViews}
           />
         )}
       </main>

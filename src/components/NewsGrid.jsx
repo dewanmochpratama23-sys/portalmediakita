@@ -58,7 +58,7 @@ export default function NewsGrid({ articles, onSelectArticle, userRole, onDelete
 
             <div className="mt-4 pt-3 border-t border-stone-100 flex justify-between text-[11px] text-stone-500">
               <span className="font-medium text-stone-700">{article.author.name}</span>
-              <span>{article.views.toLocaleString()} pembaca</span>
+              <span>{(article.views || 0).toLocaleString('id-ID')} pembaca</span>
             </div>
           </article>
         ))}

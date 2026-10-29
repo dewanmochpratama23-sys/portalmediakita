@@ -1,5 +1,34 @@
 export const initialArticles = [
   {
+    id: "founder-dewan-01",
+    title: "Dilema Warisan Berujung Fitnah Keji: Ibu Tiri Tega Usir Anak Kandung Suami yang Sedang Sakit Parah Demi Kuasai Harta",
+    category: "Tajuk Rencana",
+    slug: "dilema-warisan-ibu-tiri-usir-anak-kandung",
+    excerpt: "Sengketa pembagian harta warisan berujung drama kelam. Anak kandung yang tengah terbaring berjuang melawan sakit parah justru diusir paksa oleh ibu tiri demi memonopoli aset peninggalan almarhum sang ayah.",
+    content: `JAKARTA — Sengketa hak waris keluarga kembali menyisakan potret buram ketika etika moral dan nurani kemanusiaan dikalahkan oleh ambisi penguasaan materi. Peristiwa memilukan menimpa seorang anak kandung yang sedang terbaring lemah menghadapi sakit menahun, namun justru mendapati dirinya diusir secara paksa dari kediaman peninggalan orang tuanya sendiri oleh sang ibu tiri.
+
+Berdasarkan investigasi lapangan dan konfirmasi saksi kerabat, berbagai tuduhan sepihak dan narasi manipulatif sengaja dihembuskan guna mempersempit ruang gerak sang anak kandung serta menjauhkannya dari komunikasi keluarga besar. Kondisi fisik yang rapuh akibat penyakit membuat korban tak berdaya menghadapi intimidasi psikis maupun manuver pemindahtanganan aset secara sepihak.
+
+"Harta peninggalan almarhum orang tua seharusnya menjadi jaminan perlindungan dan biaya perawatan bagi anak yang sedang menderita sakit, bukan malah dijadikan objek rebutan dengan menyingkirkan darah daging yang sah," ungkap salah satu kerabat dekat korban dengan nada pilu.
+
+Redaksi MediaKita memandang kasus ini sebagai pengingat keras bagi tatanan hukum keluarga dan kepekaan sosial masyarakat sekitar. Aparat penegak hukum dan pengadilan agama didesak untuk memberikan atensi khusus serta perlindungan hukum darurat bagi korban yang berada dalam posisi rentan. Keadilan sejati tidak boleh kalah oleh rekayasa fitnah dan keserakahan duniawi.`,
+    author: {
+      name: "Dewan Mochamad Pratama",
+      role: "Founder & Pemimpin Redaksi",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+      verified: true,
+      isKtpVerified: true
+    },
+    coverImage: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1200&auto=format&fit=crop&q=80",
+    publishedAt: "Baru saja",
+    readingTime: "2 min baca",
+    views: 0,
+    likes: 0,
+    status: "published",
+    isLead: true,
+    royaltyAmount: 0
+  },
+  {
     id: 1,
     title: "Menghidupkan Pasar Rakyat: Ketika 120 Pedagang Sayur di Malang Membentuk Rantai Pasok Mandiri",
     category: "Ekonomi Rakyat",
@@ -24,7 +53,7 @@ Hasilnya mencengangkan: margin pendapatan bersih para pedagang meningkat rata-ra
     views: 4820,
     likes: 184,
     status: "published",
-    isLead: true,
+    isLead: false,
     royaltyAmount: 135000
   },
   {

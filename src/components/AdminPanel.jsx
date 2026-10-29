@@ -10,7 +10,8 @@ export default function AdminPanel({
   onTakedownArticle,
   onApproveKtp,
   onRejectKtp,
-  onPublishFounderArticle
+  onPublishFounderArticle,
+  onUpdateArticleViews
 }) {
   const [activeTab, setActiveTab] = useState('curation'); // 'curation' | 'ktp' | 'published'
   const [searchQuery, setSearchQuery] = useState('');
@@ -263,8 +264,41 @@ export default function AdminPanel({
                         <td className="p-3.5 text-stone-700">
                           {article.author.name}
                         </td>
-                        <td className="p-3.5 text-right font-bold text-stone-900">
-                          {article.views.toLocaleString()}
+                        <td className="p-3.5 text-right font-bold text-stone-900 whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="font-serif text-sm">
+                              {(article.views || 0).toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-[10px] text-stone-400 font-normal">pembaca</span>
+                            
+                            {/* Tombol Cepat Founder Koreksi Angka Pembaca */}
+                            <button
+                              onClick={() => {
+                                const input = prompt(`Koreksi Jumlah Pembaca Real-Time:\n"${article.title}"\n\nMasukkan angka pembaca baru:`, article.views || 0);
+                                if (input !== null && !isNaN(input.trim()) && input.trim() !== '') {
+                                  onUpdateArticleViews && onUpdateArticleViews(article.id, parseInt(input.trim(), 10));
+                                }
+                              }}
+                              className="ml-1 text-[10px] bg-stone-100 hover:bg-stone-200 text-stone-700 px-1.5 py-0.5 rounded border border-stone-300 font-normal transition"
+                              title="Koreksi / sesuaikan angka pembaca secara manual"
+                            >
+                              ✏️ Edit
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Reset jumlah pembaca artikel "${article.title}" menjadi 0 pembaca murni?`)) {
+                                  onUpdateArticleViews && onUpdateArticleViews(article.id, 0);
+                                }
+                              }}
+                              className="text-[10px] bg-stone-100 hover:bg-red-50 text-stone-500 hover:text-red-700 px-1 py-0.5 rounded border border-stone-200 font-normal transition"
+                              title="Reset pembaca ke 0"
+                            >
+                              🔄 0
+                            </button>
+                          </div>
+                          <div className="text-[10px] font-normal text-emerald-800 mt-0.5">
+                            Royalti: Rp {(article.royaltyAmount || 0).toLocaleString('id-ID')}
+                          </div>
                         </td>
                         <td className="p-3.5 text-center space-x-2">
                           {/* Tombol Tarik (Takedown/Unpublish) */}
@@ -634,6 +668,17 @@ export default function AdminPanel({
                   placeholder="Ketik catatan, liputan, atau gagasan Anda di sini..."
                   className="w-full border border-stone-300 bg-white p-3 text-stone-900 font-serif text-sm leading-relaxed focus:outline-none focus:border-stone-900"
                 ></textarea>
+              </div>
+
+              {/* Info Counter Real-Time */}
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded text-emerald-950 text-[11px] flex items-start gap-2">
+                <span className="text-sm">⚡</span>
+                <div>
+                  <span className="font-bold">Pelacak Pembaca Real-Time:</span>
+                  <p className="text-[10px] text-emerald-800 mt-0.5 leading-relaxed">
+                    Artikel Anda akan mulai tayang dengan <strong>0 pembaca</strong> murni, dan counter otomatis bertambah +1 secara real-time setiap kali ada pengunjung yang membaca naskah.
+                  </p>
+                </div>
               </div>
 
               <div className="pt-2 flex flex-col sm:flex-row justify-end gap-2">

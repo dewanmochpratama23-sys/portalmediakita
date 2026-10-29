@@ -69,7 +69,7 @@ export default function LeadStory({ article, onSelectArticle, userRole, onDelete
           <span>{article.readingTime}</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-stone-700 font-semibold">{article.views.toLocaleString()} Pembaca</span>
+          <span className="text-stone-700 font-semibold">{(article.views || 0).toLocaleString('id-ID')} Pembaca</span>
           <span>&bull;</span>
           <span className="text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 border border-emerald-200 rounded">
             Royalti Penulis: 70% Aktif
