@@ -11,6 +11,7 @@ import Footer from './components/Footer';
 import LoginModal from './components/LoginModal';
 import LegalPedomanModal from './components/LegalPedomanModal';
 import { initialArticles, pendingArticles as initialPending } from './data/mockArticles';
+import { supabase } from './lib/supabaseClient';
 
 const STORAGE_KEY_ARTICLES = 'mediakita_portal_articles_v7';
 const STORAGE_KEY_PENDING = 'mediakita_portal_pending_v7';
@@ -71,6 +72,41 @@ export default function App() {
       console.warn("Pending storage write error", e);
     }
   }, [pendingList]);
+
+  // SINKRONISASI DATABASE CLOUD SUPABASE
+  useEffect(() => {
+    async function fetchCloudArticles() {
+      try {
+        const { data: remoteArticles, error: errArt } = await supabase
+          .from('articles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (remoteArticles && remoteArticles.length > 0 && !errArt) {
+          setArticles(remoteArticles);
+          try {
+            localStorage.setItem(STORAGE_KEY_ARTICLES, JSON.stringify(remoteArticles));
+          } catch (e) {}
+        }
+
+        const { data: remotePending, error: errPend } = await supabase
+          .from('pending_articles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (remotePending && !errPend) {
+          setPendingList(remotePending);
+          try {
+            localStorage.setItem(STORAGE_KEY_PENDING, JSON.stringify(remotePending));
+          } catch (e) {}
+        }
+      } catch (err) {
+        console.warn('Supabase initial fetch fallback:', err);
+      }
+    }
+
+    fetchCloudArticles();
+  }, []);
 
   const [activeCategory, setActiveCategory] = useState('Semua');
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -236,21 +272,26 @@ export default function App() {
   // =========================================================================
   // FUNGSI KHUSUS FOUNDER / ADMIN: HAPUS & TAKEDOWN ARTIKEL
   // =========================================================================
-  const handleDeleteArticle = (articleId) => {
-    setArticles(prevArticles => prevArticles.filter(a => a.id !== articleId));
-    if (selectedArticle && selectedArticle.id === articleId) {
+  const handleDeleteArticle = async (articleId) => {
+    setArticles(prevArticles => prevArticles.filter(a => String(a.id) !== String(articleId)));
+    if (selectedArticle && String(selectedArticle.id) === String(articleId)) {
       setSelectedArticle(null);
       setCurrentView('portal');
+    }
+    try {
+      await supabase.from('articles').delete().eq('id', String(articleId));
+    } catch (e) {
+      console.warn("Delete article cloud error:", e);
     }
     alert("✓ Artikel berhasil dihapus permanen dari portal berita!");
   };
 
-  const handleTakedownArticle = (articleId) => {
-    const target = articles.find(a => a.id === articleId);
+  const handleTakedownArticle = async (articleId) => {
+    const target = articles.find(a => String(a.id) === String(articleId));
     if (!target) return;
 
     // Hapus dari daftar terbit publik
-    setArticles(prevArticles => prevArticles.filter(a => a.id !== articleId));
+    setArticles(prevArticles => prevArticles.filter(a => String(a.id) !== String(articleId)));
     
     // Masukkan kembali ke antrean naskah/revisi dengan status unlisted
     const unlisted = {
@@ -260,12 +301,31 @@ export default function App() {
     };
     setPendingList(prev => [unlisted, ...prev]);
 
+    // Hapus dari articles di Supabase, masukkan ke pending_articles di Supabase
+    try {
+      await supabase.from('articles').delete().eq('id', String(articleId));
+      await supabase.from('pending_articles').upsert([{
+        id: String(target.id),
+        title: target.title,
+        category: target.category,
+        author: typeof target.author === 'string' ? target.author : (target.author?.name || 'Kontributor Warga'),
+        submittedAt: 'Ditarik dari publik oleh Redaksi',
+        status: 'pending',
+        originalityScore: 90,
+        excerpt: target.excerpt,
+        content: target.content,
+        coverImage: target.coverImage
+      }]);
+    } catch (e) {
+      console.warn("Takedown cloud error:", e);
+    }
+
     // Buat catatan redaksi resmi transparan untuk publik
     const formattedDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     const noticeText = `Artikel "${target.title}" telah ditarik dari peredaran oleh Redaksi pada ${formattedDate} karena sedang dalam proses verifikasi faktual / evaluasi kepatuhan pedoman komunitas.`;
     setTakedownNotices(prev => [{ id: target.id, title: target.title, date: formattedDate, notice: noticeText }, ...prev]);
 
-    if (selectedArticle && selectedArticle.id === articleId) {
+    if (selectedArticle && String(selectedArticle.id) === String(articleId)) {
       setSelectedArticle(null);
       setCurrentView('portal');
     }
@@ -305,7 +365,7 @@ export default function App() {
 
     if (isNewRead) {
       setArticles(prevArticles => prevArticles.map(a => {
-        if (a.id === article.id) {
+        if (String(a.id) === String(article.id)) {
           return {
             ...a,
             views: nextViews,
@@ -314,6 +374,17 @@ export default function App() {
         }
         return a;
       }));
+
+      // Simpan pembaruan pembaca & royalti ke Supabase Cloud
+      try {
+        supabase
+          .from('articles')
+          .update({ views: nextViews, royaltyAmount: nextRoyalty })
+          .eq('id', String(article.id))
+          .then();
+      } catch (e) {
+        console.warn("Update views cloud error:", e);
+      }
     }
 
     setSelectedArticle({
@@ -330,15 +401,31 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handlePublishNewArticle = (newArt) => {
+  const handlePublishNewArticle = async (newArt) => {
     setPendingList([newArt, ...pendingList]);
     setCurrentView('dashboard');
+    try {
+      await supabase.from('pending_articles').insert([{
+        id: String(newArt.id),
+        title: newArt.title,
+        category: newArt.category,
+        author: typeof newArt.author === 'string' ? newArt.author : (newArt.author?.name || "Kontributor Warga"),
+        submittedAt: newArt.publishedAt || "Baru saja",
+        status: "pending",
+        originalityScore: 95,
+        excerpt: newArt.excerpt,
+        content: newArt.content,
+        coverImage: newArt.coverImage
+      }]);
+    } catch (e) {
+      console.warn("Gagal simpan pending article ke Supabase:", e);
+    }
   };
 
   // =========================================================================
   // FUNGSI KHUSUS FOUNDER: TERBITKAN ARTIKEL LANGSUNG TAYANG (TANPA ANTRE)
   // =========================================================================
-  const handlePublishFounderArticle = (articleData) => {
+  const handlePublishFounderArticle = async (articleData) => {
     const wordsCount = articleData.content ? articleData.content.split(/\s+/).length : 200;
     const readMinutes = Math.max(2, Math.round(wordsCount / 160));
 
@@ -346,6 +433,7 @@ export default function App() {
       id: `founder-${Date.now()}`,
       title: articleData.title,
       category: articleData.category || 'Tajuk Rencana',
+      slug: (articleData.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       excerpt: articleData.excerpt || (articleData.content ? articleData.content.substring(0, 160) + '...' : 'Catatan resmi Redaksi MediaKita.'),
       content: articleData.content,
       coverImage: articleData.coverImage || "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop&q=80",
@@ -373,12 +461,22 @@ export default function App() {
       return [newArt, ...updated];
     });
 
+    try {
+      if (newArt.isLead) {
+        await supabase.from('articles').update({ isLead: false }).neq('id', newArt.id);
+      }
+      await supabase.from('articles').insert([newArt]);
+    } catch (e) {
+      console.warn("Founder article cloud save error:", e);
+    }
+
     alert(`✓ SELAMAT! Artikel Founder:\n"${newArt.title}"\nresmi TAYANG LANGSUNG di halaman utama Portal MediaKita!\n(Jumlah pembaca dimulai dari 0 dan terupdate real-time).`);
   };
 
-  const handleApproveArticle = (item) => {
+  const handleApproveArticle = async (item) => {
     const approved = {
       ...item,
+      id: String(item.id),
       status: 'published',
       publishedAt: 'Baru saja',
       readingTime: '4 min baca',
@@ -391,34 +489,52 @@ export default function App() {
       royaltyAmount: 0
     };
     setArticles([approved, ...articles]);
-    setPendingList(pendingList.filter(p => p.id !== item.id));
+    setPendingList(pendingList.filter(p => String(p.id) !== String(item.id)));
+
+    try {
+      await supabase.from('articles').upsert([approved]);
+      await supabase.from('pending_articles').delete().eq('id', String(item.id));
+    } catch (e) {
+      console.warn("Approve cloud error:", e);
+    }
+
     alert(`Artikel "${item.title}" resmi disetujui & tayang di portal utama!`);
   };
 
   // =========================================================================
   // FUNGSI KHUSUS FOUNDER: KOREKSI / RESET ANGKA PEMBACA REAL-TIME
   // =========================================================================
-  const handleUpdateArticleViews = (articleId, newViews) => {
+  const handleUpdateArticleViews = async (articleId, newViews) => {
     const safeViews = Math.max(0, parseInt(newViews, 10) || 0);
     const safeRoyalty = Math.round(safeViews * 25);
     setArticles(prevArticles => prevArticles.map(a => {
-      if (a.id === articleId) {
+      if (String(a.id) === String(articleId)) {
         return { ...a, views: safeViews, royaltyAmount: safeRoyalty };
       }
       return a;
     }));
-    if (selectedArticle && selectedArticle.id === articleId) {
+    if (selectedArticle && String(selectedArticle.id) === String(articleId)) {
       setSelectedArticle(prev => ({
         ...prev,
         views: safeViews,
         royaltyAmount: safeRoyalty
       }));
     }
+    try {
+      await supabase.from('articles').update({ views: safeViews, royaltyAmount: safeRoyalty }).eq('id', String(articleId));
+    } catch (e) {
+      console.warn("Update views cloud error:", e);
+    }
     alert(`✓ Jumlah pembaca artikel berhasil diperbarui menjadi ${safeViews.toLocaleString('id-ID')} pembaca!`);
   };
 
-  const handleRejectArticle = (id) => {
-    setPendingList(pendingList.filter(p => p.id !== id));
+  const handleRejectArticle = async (id) => {
+    setPendingList(pendingList.filter(p => String(p.id) !== String(id)));
+    try {
+      await supabase.from('pending_articles').delete().eq('id', String(id));
+    } catch (e) {
+      console.warn("Reject cloud error:", e);
+    }
     alert("Catatan revisi telah dikirimkan ke surel penulis.");
   };
 

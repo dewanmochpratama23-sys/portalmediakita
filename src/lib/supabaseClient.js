@@ -1,11 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Ambil credentials dari .env jika tersedia
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://example-project.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'example-anon-key';
+// Credentials Supabase Cloud
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  'https://bvibqplnbjthrddbggzg.supabase.co';
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  'sb_publishable_M2Wn82MZHXfFw3Ri_K9xCQ_0txpzPaD';
 
-export const isSupabaseConfigured = Boolean(
-  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+export const isSupabaseConfigured = true;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
