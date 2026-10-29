@@ -28,11 +28,11 @@ export default function LoginModal({ isOpen, onClose, targetRole, onLoginSuccess
         setPassword('');
         onClose();
       } else {
-        setError('Kata sandi Redaksi salah! (Default: admin123)');
+        setError('Kata sandi Redaksi salah!');
       }
     } else {
       // Login penulis umum
-      if (password === 'penulis123' || password === 'jurnalis' || password === '') {
+      if (password === 'penulis123' || password === 'jurnalis') {
         onLoginSuccess('contributor', {
           name: "Budi Setiawan, M.Sc.",
           role: "Kontributor Warga",
@@ -44,7 +44,7 @@ export default function LoginModal({ isOpen, onClose, targetRole, onLoginSuccess
         setPassword('');
         onClose();
       } else {
-        setError('Kata sandi Kontributor salah! (Default: penulis123)');
+        setError('Kata sandi salah. Silakan periksa kembali kata sandi Anda.');
       }
     }
   };
@@ -139,9 +139,10 @@ export default function LoginModal({ isOpen, onClose, targetRole, onLoginSuccess
               <input
                 type="password"
                 autoFocus
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={isAdmin ? 'Ketik admin123' : 'Ketik penulis123 (atau langsung Enter)'}
+                placeholder="Masukkan kata sandi..."
                 className="w-full border border-stone-300 bg-white p-2.5 text-stone-900 focus:outline-none focus:border-stone-900 font-mono text-sm"
               />
               {error && (
@@ -163,14 +164,6 @@ export default function LoginModal({ isOpen, onClose, targetRole, onLoginSuccess
               >
                 Batal
               </button>
-            </div>
-
-            <div className="pt-2 border-t border-stone-200 text-center text-[10px] text-stone-500">
-              {isAdmin ? (
-                <span>Petunjuk uji coba PIN: <strong className="text-stone-800">admin123</strong></span>
-              ) : (
-                <span>Petunjuk akun demo: <strong className="text-stone-800">penulis123</strong></span>
-              )}
             </div>
           </form>
         )}
