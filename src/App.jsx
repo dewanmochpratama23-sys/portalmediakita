@@ -102,9 +102,9 @@ export default function App() {
     }
   ]);
 
-  // DETEKSI SHORTCUT RAHASIA & HASH URL
+  // DETEKSI SHORTCUT RAHASIA, HASH URL, & DIRECT LINK ARTIKEL (?baca=ID)
   useEffect(() => {
-    const checkHash = () => {
+    const checkHashAndParams = () => {
       const hash = window.location.hash.toLowerCase();
       if (hash === '#admin') {
         setLoginTargetRole('admin');
@@ -113,9 +113,24 @@ export default function App() {
         setLoginTargetRole('contributor');
         setLoginModalOpen(true);
       }
+
+      // Deteksi jika pengunjung membuka tautan langsung artikel dari WhatsApp (?baca=id atau #baca-id)
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const bacaId = params.get('baca') || (hash.startsWith('#baca-') ? window.location.hash.replace('#baca-', '') : null);
+        if (bacaId) {
+          const target = articles.find(a => String(a.id) === String(bacaId));
+          if (target) {
+            handleSelectArticle(target);
+          }
+        }
+      } catch (e) {
+        console.warn("URL routing parse error", e);
+      }
     };
-    checkHash();
-    window.addEventListener('hashchange', checkHash);
+
+    checkHashAndParams();
+    window.addEventListener('hashchange', checkHashAndParams);
 
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
@@ -127,10 +142,10 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener('hashchange', checkHash);
+      window.removeEventListener('hashchange', checkHashAndParams);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [articles]);
 
   const handleOpenLogin = (role) => {
     setLoginTargetRole(role);
@@ -224,6 +239,9 @@ export default function App() {
     });
 
     setCurrentView('article-detail');
+    try {
+      window.history.pushState(null, '', `?baca=${encodeURIComponent(article.id)}`);
+    } catch (e) {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -473,7 +491,13 @@ export default function App() {
             )}
 
             <button
-              onClick={() => setCurrentView('portal')}
+              onClick={() => {
+                setCurrentView('portal');
+                try {
+                  window.history.pushState(null, '', window.location.pathname);
+                } catch (e) {}
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               className="text-xs font-semibold text-stone-600 hover:text-stone-950 mb-4 inline-block"
             >
               &larr; Kembali ke Beranda Utama
@@ -531,7 +555,7 @@ export default function App() {
                   Artikel ini telah dibaca <strong className="text-stone-900">{(selectedArticle.views || 0).toLocaleString('id-ID')} kali</strong> secara real-time dan terakumulasi royalti <strong className="text-emerald-800">Rp {(selectedArticle.royaltyAmount || 0).toLocaleString('id-ID')}</strong> (skema bagi hasil 70% penulis).
                 </p>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => {
                     const nextLikes = (selectedArticle.likes || 0) + 1;
@@ -544,14 +568,32 @@ export default function App() {
                   <span>❤️ Apresiasi</span>
                   <span className="font-bold">({selectedArticle.likes || 0})</span>
                 </button>
+
+                {/* Tombol Bagikan Langsung ke WhatsApp dengan Link Preview Foto Berita */}
                 <button
                   onClick={() => {
-                    navigator.clipboard?.writeText(window.location.href);
-                    alert("✓ Tautan artikel berhasil disalin! Bagikan ke WhatsApp atau media sosial.");
+                    const shareUrl = `https://www.portalmediakita.com/baca/${selectedArticle.id}?t=${encodeURIComponent(selectedArticle.title)}&img=${encodeURIComponent(selectedArticle.coverImage)}`;
+                    const waText = `*${selectedArticle.title}*\n\nBaca liputan selengkapnya di MediaKita:\n${shareUrl}`;
+                    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`, '_blank');
                   }}
-                  className="bg-stone-900 hover:bg-stone-800 text-[#FAF8F5] text-xs font-semibold px-3 py-1.5 rounded transition"
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3.5 py-1.5 rounded flex items-center gap-1.5 transition shadow-sm"
+                  title="Bagikan artikel ini ke WhatsApp (dengan pratinjau foto sampul)"
                 >
-                  Bagikan Naskah
+                  <span>📲</span>
+                  <span>Kirim ke WhatsApp</span>
+                </button>
+
+                {/* Tombol Salin Tautan Berita */}
+                <button
+                  onClick={() => {
+                    const shareUrl = `https://www.portalmediakita.com/baca/${selectedArticle.id}?t=${encodeURIComponent(selectedArticle.title)}&img=${encodeURIComponent(selectedArticle.coverImage)}`;
+                    navigator.clipboard?.writeText(shareUrl);
+                    alert(`✓ Tautan Berita Berhasil Disalin!\n\nLink: ${shareUrl}\n\nSaat Anda menempelkan (paste) tautan ini di WhatsApp Status atau Chat, foto sampul berita akan langsung muncul otomatis!`);
+                  }}
+                  className="bg-stone-900 hover:bg-stone-800 text-[#FAF8F5] text-xs font-semibold px-3.5 py-1.5 rounded transition flex items-center gap-1.5"
+                >
+                  <span>📋</span>
+                  <span>Salin Tautan</span>
                 </button>
               </div>
             </div>

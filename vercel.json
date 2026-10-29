@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/baca/:id",
+      "destination": "/api/share?id=:id"
+    },
+    {
+      "source": "/share",
+      "destination": "/api/share"
+    },
+    {
+      "source": "/((?!api/.*).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
