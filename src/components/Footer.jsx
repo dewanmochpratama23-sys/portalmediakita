@@ -168,25 +168,16 @@ export default function Footer({ userRole, onNavigate, onOpenLogin, onOpenPedoma
 
         </div>
 
-        {/* Sub-Footer Bawah (Copyright & Akses Founder) */}
+        {/* Sub-Footer Bawah (Copyright Bersih Tanpa Jejak Founder) */}
         <div className="pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-[11px] text-stone-500">
           <div>
-            &copy; 2026 <strong>MediaKita.com</strong>. Hak cipta naskah dan opini berada pada masing-masing kontributor warga.
-            
-            {/* Pintu Akses Rahasia Khusus Founder */}
-            <button
-              onClick={() => onOpenLogin('admin')}
-              title="Akses Rahasia Pengelola Platform"
-              className="ml-3 text-stone-400 hover:text-stone-800 transition"
-            >
-              [Pintu Redaksi]
-            </button>
+            &copy; 2026 <strong>PortalMediaKita.com</strong>. Hak cipta naskah dan opini berada pada masing-masing kontributor warga.
           </div>
 
           <div className="flex items-center gap-4 text-[10px]">
             <span>Didukung Supabase &bull; Vercel CDN</span>
             <span className="text-stone-300">|</span>
-            <span>Pintasan Founder: <kbd className="border border-stone-300 px-1 bg-white font-mono">Ctrl + Shift + A</kbd></span>
+            <span>Semua Hak Dilindungi Undang-Undang</span>
           </div>
         </div>
 
