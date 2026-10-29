@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 export default function AdminPanel({
   pendingList,
@@ -23,6 +23,22 @@ export default function AdminPanel({
   const [founderIsLead, setFounderIsLead] = useState(true);
   const [founderCoverImage, setFounderCoverImage] = useState('https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop&q=80');
   const [founderContent, setFounderContent] = useState('');
+  const founderFileInputRef = useRef(null);
+
+  const handleFounderImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Ukuran foto maksimal 5MB!");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFounderCoverImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const pendingKtpList = ktpRequests.filter(r => r.status === 'pending');
 
@@ -545,22 +561,50 @@ export default function AdminPanel({
 
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-700 mb-1">
-                  Foto Sampul (Pilih Cepat atau Tempel Tautan)
+                  Foto Sampul Artikel
                 </label>
+                
+                {/* File Input Tersembunyi untuk Pilih Foto dari Laptop / HP */}
                 <input
-                  type="text"
-                  value={founderCoverImage}
-                  onChange={(e) => setFounderCoverImage(e.target.value)}
-                  placeholder="Tautan URL Gambar (https://...)"
-                  className="w-full border border-stone-300 bg-white p-2 text-stone-900 text-xs font-mono mb-2"
+                  type="file"
+                  ref={founderFileInputRef}
+                  onChange={handleFounderImageUpload}
+                  accept="image/*"
+                  className="hidden"
                 />
-                <div className="flex flex-wrap gap-1.5 text-[10px]">
-                  <span className="font-bold text-stone-500 py-1">Pilihan Cepat:</span>
+
+                {/* Kotak Pratinjau Foto & Tombol Unggah */}
+                <div className="border border-stone-300 rounded p-3 bg-stone-50 flex flex-col sm:flex-row items-center gap-3.5 mb-2.5">
+                  <div className="w-full sm:w-44 h-28 bg-stone-200 rounded border border-stone-300 overflow-hidden flex-shrink-0 flex items-center justify-center relative shadow-inner">
+                    {founderCoverImage ? (
+                      <img src={founderCoverImage} alt="Sampul" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xs text-stone-400">Belum ada foto</span>
+                    )}
+                  </div>
+                  <div className="space-y-2 flex-1 w-full text-left">
+                    <button
+                      type="button"
+                      onClick={() => founderFileInputRef.current.click()}
+                      className="bg-stone-900 hover:bg-stone-800 text-[#FAF8F5] text-xs font-bold px-3.5 py-2 rounded flex items-center gap-1.5 transition shadow-sm w-full sm:w-auto justify-center"
+                    >
+                      <span>📁</span>
+                      <span>Pilih Foto dari Galeri HP / Laptop</span>
+                    </button>
+                    <p className="text-[10px] text-stone-500 leading-relaxed">
+                      Format JPG/PNG (Maks. 5MB). Foto ini akan menjadi gambar utama artikel Anda di halaman depan.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Pilihan Cepat Preset Koleksi Foto Berita */}
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                  <span className="font-bold text-stone-500 py-0.5">Atau Pilih Foto Cepat:</span>
                   {[
-                    { label: "Redaksi / Meja Kerja", url: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop&q=80" },
-                    { label: "Pasar Rakyat Karawang", url: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80" },
-                    { label: "Gedung & Kebijakan", url: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop&q=80" },
-                    { label: "Transportasi", url: "https://images.unsplash.com/photo-1509749837427-ac94a2553d0e?w=800&auto=format&fit=crop&q=80" }
+                    { label: "📸 Redaksi / Meja Kerja", url: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop&q=80" },
+                    { label: "🏪 Pasar Karawang", url: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop&q=80" },
+                    { label: "🏛️ Gedung & Kebijakan", url: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop&q=80" },
+                    { label: "🚌 Transportasi", url: "https://images.unsplash.com/photo-1509749837427-ac94a2553d0e?w=800&auto=format&fit=crop&q=80" }
                   ].map((preset, idx) => (
                     <button
                       key={idx}
