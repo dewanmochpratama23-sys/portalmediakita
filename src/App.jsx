@@ -191,7 +191,26 @@ export default function App() {
     }
   }, []);
 
-  // 4. REAL-TIME PULSE: TAMBAH PEMBACA AKTIF SAAT ARTIKEL SEDANG DIBUKA
+  // 4. INTEGRASI GOOGLE ANALYTICS 4 (PELACAKAN PENGUNJUNG REALTIME)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+      if (currentView === 'article-detail' && selectedArticle) {
+        window.gtag('event', 'page_view', {
+          page_title: selectedArticle.title,
+          page_location: window.location.href,
+          page_path: `/baca/${selectedArticle.slug || selectedArticle.id}`
+        });
+      } else if (currentView === 'portal') {
+        window.gtag('event', 'page_view', {
+          page_title: 'MediaKita — Jurnalisme Warga & Informasi Publik',
+          page_location: window.location.href,
+          page_path: '/'
+        });
+      }
+    }
+  }, [currentView, selectedArticle?.id]);
+
+  // 5. REAL-TIME PULSE: TAMBAH PEMBACA AKTIF SAAT ARTIKEL SEDANG DIBUKA
   useEffect(() => {
     if (currentView !== 'article-detail' || !selectedArticle) return;
 
