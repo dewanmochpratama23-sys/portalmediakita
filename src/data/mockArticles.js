@@ -1,17 +1,25 @@
 export const initialArticles = [
   {
-    id: "founder-dewan-01",
+    id: "dilema-warisan",
     title: "Dilema Warisan Berujung Fitnah Keji: Ibu Tiri Tega Usir Anak Kandung Suami yang Sedang Sakit Parah Demi Kuasai Harta",
     category: "Tajuk Rencana",
-    slug: "dilema-warisan-ibu-tiri-usir-anak-kandung",
-    excerpt: "Sengketa pembagian harta warisan berujung drama kelam. Anak kandung yang tengah terbaring berjuang melawan sakit parah justru diusir paksa oleh ibu tiri demi memonopoli aset peninggalan almarhum sang ayah.",
-    content: `JAKARTA — Sengketa hak waris keluarga kembali menyisakan potret buram ketika etika moral dan nurani kemanusiaan dikalahkan oleh ambisi penguasaan materi. Peristiwa memilukan menimpa seorang anak kandung yang sedang terbaring lemah menghadapi sakit menahun, namun justru mendapati dirinya diusir secara paksa dari kediaman peninggalan orang tuanya sendiri oleh sang ibu tiri.
+    slug: "dilema-warisan",
+    excerpt: "KARAWANG — Konflik pelik perebutan harta warisan kembali mencoreng nilai-nilai kemanusiaan. Sebuah kisah memilukan datang dari seorang anak pertama yang harus menghadapi cobaan berlapis: berjuang melawan penyakit parah, sekaligus menjadi korban fitnah keji serta upaya penggusuran yang diduga didalangi oleh ibu tirinya sendiri.",
+    content: `KARAWANG — Konflik pelik perebutan harta warisan kembali mencoreng nilai-nilai kemanusiaan. Sebuah kisah memilukan datang dari seorang anak pertama yang harus menghadapi cobaan berlapis: berjuang melawan penyakit parah, sekaligus menjadi korban fitnah keji serta upaya penggusuran yang diduga didalangi oleh ibu tirinya sendiri.
 
-Berdasarkan investigasi lapangan dan konfirmasi saksi kerabat, berbagai tuduhan sepihak dan narasi manipulatif sengaja dihembuskan guna mempersempit ruang gerak sang anak kandung serta menjauhkannya dari komunikasi keluarga besar. Kondisi fisik yang rapuh akibat penyakit membuat korban tak berdaya menghadapi intimidasi psikis maupun manuver pemindahtanganan aset secara sepihak.
+Kasus ini mencuat setelah sang ibu tiri diduga menghalalkan segala cara demi menguasai seluruh harta peninggalan almarhum suaminya. Alih-alih menunjukkan empati kepada anak sambungnya yang tengah terbaring lemah, ia justru tega menyebar fitnah di tengah-tengah warga sekitar.
 
-"Harta peninggalan almarhum orang tua seharusnya menjadi jaminan perlindungan dan biaya perawatan bagi anak yang sedang menderita sakit, bukan malah dijadikan objek rebutan dengan menyingkirkan darah daging yang sah," ungkap salah satu kerabat dekat korban dengan nada pilu.
+Fitnah Keji di Tengah Kondisi Kritis
+Menurut keterangan yang dihimpun, kondisi kesehatan sang anak pertama saat ini sangat memprihatinkan. Untuk sekadar berdiri atau berjalan kaki saja, ia sudah tidak sanggup akibat penyakit yang menggerogoti tubuhnya. Di tengah perjuangannya untuk bertahan hidup, ia justru dihadapkan pada tekanan psikis yang bertubi-tubi.
 
-Redaksi MediaKita memandang kasus ini sebagai pengingat keras bagi tatanan hukum keluarga dan kepekaan sosial masyarakat sekitar. Aparat penegak hukum dan pengadilan agama didesak untuk memberikan atensi khusus serta perlindungan hukum darurat bagi korban yang berada dalam posisi rentan. Keadilan sejati tidak boleh kalah oleh rekayasa fitnah dan keserakahan duniawi.`,
+Ibu tiri korban diduga sengaja memutarbalikkan fakta dan mengumbar narasi bohong kepada tetangga serta kerabat. Tujuannya tak lain adalah untuk mengisolasi korban, memutus dukungan sosial dari keluarga besar, hingga akhirnya memaksa sang anak keluar dari rumah peninggalan orang tuanya sendiri secara sepihak.
+
+"Sungguh tidak punya hati nurani. Anak kandung sedang sakit keras bukannya dirawat dengan baik dan diberikan bagian haknya, malah difitnah dan diusir agar rumah dan tanah bisa dikuasai sendirian," keluh salah satu warga yang prihatin atas tragedi keluarga ini.
+
+Seruan Penegakan Keadilan & Moralitas
+Redaksi MediaKita memandang kasus di Karawang ini bukan sekadar sengketa keluarga biasa, melainkan ujian bagi rasa keadilan dan nurani masyarakat sekitar. Hukum positif di Indonesia menjamin secara mutlak hak waris anak kandung dari orang tuanya yang sah, dan tindakan penelantaran orang sakit dapat dijerat pasal pidana berat.
+
+Masyarakat dan pihak berwenang diharapkan dapat turun tangan memberikan pendampingan hukum dan medis bagi korban, agar hak-haknya tidak terampas oleh keserakahan pihak yang tidak bertanggung jawab.`,
     author: {
       name: "Dewan Mochamad Pratama",
       role: "Founder & Pemimpin Redaksi",
@@ -19,14 +27,14 @@ Redaksi MediaKita memandang kasus ini sebagai pengingat keras bagi tatanan hukum
       verified: true,
       isKtpVerified: true
     },
-    coverImage: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1200&auto=format&fit=crop&q=80",
+    coverImage: "/images/dilema-warisan.jpg",
     publishedAt: "Baru saja",
     readingTime: "2 min baca",
-    views: 0,
-    likes: 0,
+    views: 14,
+    likes: 3,
     status: "published",
     isLead: true,
-    royaltyAmount: 0
+    royaltyAmount: 350
   },
   {
     id: 1,

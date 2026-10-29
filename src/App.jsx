@@ -12,8 +12,8 @@ import LoginModal from './components/LoginModal';
 import LegalPedomanModal from './components/LegalPedomanModal';
 import { initialArticles, pendingArticles as initialPending } from './data/mockArticles';
 
-const STORAGE_KEY_ARTICLES = 'mediakita_portal_articles_v5';
-const STORAGE_KEY_PENDING = 'mediakita_portal_pending_v5';
+const STORAGE_KEY_ARTICLES = 'mediakita_portal_articles_v6';
+const STORAGE_KEY_PENDING = 'mediakita_portal_pending_v6';
 
 export default function App() {
   // ROLE PENGGUNA:
@@ -33,26 +33,7 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map(a => {
-            // Bersihkan jika ada angka loop glitch dari sesi sebelumnya (>10.000)
-            if ((a.views || 0) > 10000 && a.id !== 1) {
-              const matchedInitial = initialArticles.find(i => String(i.id) === String(a.id));
-              return { ...a, views: matchedInitial ? matchedInitial.views : 240 };
-            }
-            return a;
-          });
-        }
-      }
-
-      // Bersihkan dan ambil artikel buatan founder dari sesi lama jika ada
-      const oldSaved = localStorage.getItem('mediakita_portal_articles_v3');
-      if (oldSaved) {
-        const parsedOld = JSON.parse(oldSaved);
-        if (Array.isArray(parsedOld)) {
-          const founderArticles = parsedOld.filter(a => String(a.id).startsWith('founder-') && a.id !== 'founder-dewan-01');
-          if (founderArticles.length > 0) {
-            return [...founderArticles.map(a => ({ ...a, views: Math.min(a.views || 0, 50) })), ...initialArticles];
-          }
+          return parsed;
         }
       }
     } catch (e) {
@@ -134,7 +115,11 @@ export default function App() {
       const params = new URLSearchParams(window.location.search);
       const bacaId = params.get('baca');
       if (bacaId) {
-        const target = articles.find(a => String(a.id) === String(bacaId));
+        const target = articles.find(a => 
+          String(a.id) === String(bacaId) || 
+          a.slug === String(bacaId) ||
+          (bacaId === 'founder-dewan-01' && a.id === 'dilema-warisan')
+        );
         if (target) {
           setSelectedArticle(target);
           setCurrentView('article-detail');
@@ -192,7 +177,11 @@ export default function App() {
       const hash = window.location.hash.toLowerCase();
       const bacaId = params.get('baca') || (hash.startsWith('#baca-') ? window.location.hash.replace('#baca-', '') : null);
       if (bacaId) {
-        const target = articles.find(a => String(a.id) === String(bacaId));
+        const target = articles.find(a => 
+          String(a.id) === String(bacaId) || 
+          a.slug === String(bacaId) ||
+          (bacaId === 'founder-dewan-01' && a.id === 'dilema-warisan')
+        );
         if (target) {
           handleSelectArticle(target);
         }
@@ -322,7 +311,8 @@ export default function App() {
 
     setCurrentView('article-detail');
     try {
-      window.history.pushState(null, '', `?baca=${encodeURIComponent(article.id)}`);
+      const slugOrId = article.slug || article.id;
+      window.history.pushState({ articleId: article.id }, '', `?baca=${encodeURIComponent(slugOrId)}`);
     } catch (e) {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -658,10 +648,11 @@ export default function App() {
                   <span className="font-bold">({selectedArticle.likes || 0})</span>
                 </button>
 
-                {/* Tombol Bagikan Langsung ke WhatsApp dengan Link Preview Foto Berita */}
+                {/* Tombol Bagikan Langsung ke WhatsApp dengan Link Preview Foto Berita Ringkas */}
                 <button
                   onClick={() => {
-                    const shareUrl = `https://www.portalmediakita.com/baca/${selectedArticle.id}?t=${encodeURIComponent(selectedArticle.title)}&img=${encodeURIComponent(selectedArticle.coverImage)}`;
+                    const articleSlug = selectedArticle.slug || selectedArticle.id;
+                    const shareUrl = `https://www.portalmediakita.com/baca/${articleSlug}`;
                     const waText = `*${selectedArticle.title}*\n\nBaca liputan selengkapnya di MediaKita:\n${shareUrl}`;
                     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`, '_blank');
                   }}
@@ -672,12 +663,13 @@ export default function App() {
                   <span>Kirim ke WhatsApp</span>
                 </button>
 
-                {/* Tombol Salin Tautan Berita */}
+                {/* Tombol Salin Tautan Berita Ringkas & Bersih */}
                 <button
                   onClick={() => {
-                    const shareUrl = `https://www.portalmediakita.com/baca/${selectedArticle.id}?t=${encodeURIComponent(selectedArticle.title)}&img=${encodeURIComponent(selectedArticle.coverImage)}`;
+                    const articleSlug = selectedArticle.slug || selectedArticle.id;
+                    const shareUrl = `https://www.portalmediakita.com/baca/${articleSlug}`;
                     navigator.clipboard?.writeText(shareUrl);
-                    alert(`✓ Tautan Berita Berhasil Disalin!\n\nLink: ${shareUrl}\n\nSaat Anda menempelkan (paste) tautan ini di WhatsApp Status atau Chat, foto sampul berita akan langsung muncul otomatis!`);
+                    alert(`✓ Tautan Berita Ringkas Berhasil Disalin!\n\n${shareUrl}\n\nSaat Anda menempelkan tautan ini di WhatsApp Status atau Chat, foto sampul berita akan langsung muncul otomatis!`);
                   }}
                   className="bg-stone-900 hover:bg-stone-800 text-[#FAF8F5] text-xs font-semibold px-3.5 py-1.5 rounded transition flex items-center gap-1.5"
                 >

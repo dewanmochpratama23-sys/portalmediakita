@@ -9,7 +9,11 @@ export default function handler(req, res) {
 
   // Jika parameter judul atau gambar belum ada, cari di database naskah awal
   if (!title || !coverImage) {
-    const article = (initialArticles || []).find(a => String(a.id) === String(id));
+    const article = (initialArticles || []).find(a => 
+      String(a.id) === String(id) || 
+      a.slug === String(id) ||
+      (id === 'founder-dewan-01' && a.id === 'dilema-warisan')
+    );
     if (article) {
       title = title || article.title;
       coverImage = coverImage || article.coverImage;
@@ -20,7 +24,12 @@ export default function handler(req, res) {
   // Fallback standar MediaKita jika tidak spesifik
   title = title || 'MediaKita — Jurnalisme Warga & Informasi Publik';
   excerpt = excerpt || 'Portal Berita Independen & Jurnalisme Warga. Membuka ruang publik bagi suara warga dengan skema bagi hasil royalti 70%, radar keamanan daerah, dan warta terverifikasi.';
-  coverImage = coverImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&h=630&auto=format&fit=crop&q=80';
+  coverImage = coverImage || '/images/dilema-warisan.jpg';
+
+  // Pastikan URL gambar absolut (HTTPS) agar bot WhatsApp / Telegram dapat mengunduh gambar
+  if (coverImage.startsWith('/')) {
+    coverImage = `https://www.portalmediakita.com${coverImage}`;
+  }
 
   const destinationUrl = id
     ? `https://www.portalmediakita.com/?baca=${encodeURIComponent(id)}`
