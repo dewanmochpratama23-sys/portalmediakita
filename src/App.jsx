@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Masthead from './components/Masthead';
 import LivingAssistanceBar from './components/LivingAssistanceBar';
 import LeadStory from './components/LeadStory';
@@ -102,9 +102,12 @@ export default function App() {
     }
   ]);
 
-  // DETEKSI SHORTCUT RAHASIA, HASH URL, & DIRECT LINK ARTIKEL (?baca=ID)
+  // REF AGAR ROUTING TAUTAN HANYA DIPERIKSA SEKALI SAAT BUKA HALAMAN (MENCEGAH LOOP SCROLL)
+  const initialUrlCheckedRef = useRef(false);
+
+  // 1. DETEKSI SHORTCUT RAHASIA & HASH URL (#admin, #penulis)
   useEffect(() => {
-    const checkHashAndParams = () => {
+    const checkHash = () => {
       const hash = window.location.hash.toLowerCase();
       if (hash === '#admin') {
         setLoginTargetRole('admin');
@@ -113,24 +116,9 @@ export default function App() {
         setLoginTargetRole('contributor');
         setLoginModalOpen(true);
       }
-
-      // Deteksi jika pengunjung membuka tautan langsung artikel dari WhatsApp (?baca=id atau #baca-id)
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const bacaId = params.get('baca') || (hash.startsWith('#baca-') ? window.location.hash.replace('#baca-', '') : null);
-        if (bacaId) {
-          const target = articles.find(a => String(a.id) === String(bacaId));
-          if (target) {
-            handleSelectArticle(target);
-          }
-        }
-      } catch (e) {
-        console.warn("URL routing parse error", e);
-      }
     };
-
-    checkHashAndParams();
-    window.addEventListener('hashchange', checkHashAndParams);
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
 
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
@@ -142,10 +130,31 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener('hashchange', checkHashAndParams);
+      window.removeEventListener('hashchange', checkHash);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [articles]);
+  }, []);
+
+  // 2. DETEKSI DIRECT LINK ARTIKEL (?baca=ID) — HANYA SEKALI SAAT HALAMAN PERTAMA DIBUKA
+  useEffect(() => {
+    if (initialUrlCheckedRef.current) return;
+    initialUrlCheckedRef.current = true;
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const hash = window.location.hash.toLowerCase();
+      const bacaId = params.get('baca') || (hash.startsWith('#baca-') ? window.location.hash.replace('#baca-', '') : null);
+      if (bacaId) {
+        const target = articles.find(a => String(a.id) === String(bacaId));
+        if (target) {
+          setSelectedArticle(target);
+          setCurrentView('article-detail');
+        }
+      }
+    } catch (e) {
+      console.warn("Direct article url parse error", e);
+    }
+  }, []);
 
   const handleOpenLogin = (role) => {
     setLoginTargetRole(role);
@@ -217,6 +226,13 @@ export default function App() {
   const leadArticle = filteredArticles.find(a => a.isLead) || filteredArticles[0];
 
   const handleSelectArticle = (article) => {
+    if (!article) return;
+
+    // Jika artikel ini sedang dibuka, jangan scroll paksa atau reset posisi baca
+    if (selectedArticle && String(selectedArticle.id) === String(article.id) && currentView === 'article-detail') {
+      return;
+    }
+
     // 1. Tambah jumlah pembaca artikel secara real-time (+1 pembaca)
     const nextViews = (article.views || 0) + 1;
     const nextRoyalty = Math.round(nextViews * 25); // Royalti transparan
