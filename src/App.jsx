@@ -12,8 +12,8 @@ import LoginModal from './components/LoginModal';
 import LegalPedomanModal from './components/LegalPedomanModal';
 import { initialArticles, pendingArticles as initialPending } from './data/mockArticles';
 
-const STORAGE_KEY_ARTICLES = 'mediakita_portal_articles_v6';
-const STORAGE_KEY_PENDING = 'mediakita_portal_pending_v6';
+const STORAGE_KEY_ARTICLES = 'mediakita_portal_articles_v7';
+const STORAGE_KEY_PENDING = 'mediakita_portal_pending_v7';
 
 export default function App() {
   // ROLE PENGGUNA:
@@ -210,26 +210,6 @@ export default function App() {
     }
   }, [currentView, selectedArticle?.id]);
 
-  // 5. REAL-TIME PULSE: TAMBAH PEMBACA AKTIF SAAT ARTIKEL SEDANG DIBUKA
-  useEffect(() => {
-    if (currentView !== 'article-detail' || !selectedArticle) return;
-
-    const interval = setInterval(() => {
-      setSelectedArticle(prev => {
-        if (!prev) return null;
-        const newViews = (prev.views || 0) + 1;
-        setArticles(all => all.map(a => a.id === prev.id ? { ...a, views: newViews, royaltyAmount: Math.round(newViews * 25) } : a));
-        return {
-          ...prev,
-          views: newViews,
-          royaltyAmount: Math.round(newViews * 25)
-        };
-      });
-    }, 15000); // Bertambah setiap 15 detik secara alami saat sedang membaca
-
-    return () => clearInterval(interval);
-  }, [currentView, selectedArticle?.id]);
-
   const handleOpenLogin = (role) => {
     setLoginTargetRole(role);
     setLoginModalOpen(true);
@@ -307,20 +287,34 @@ export default function App() {
       return;
     }
 
-    // 1. Tambah jumlah pembaca artikel secara real-time (+1 pembaca)
-    const nextViews = (article.views || 0) + 1;
-    const nextRoyalty = Math.round(nextViews * 25); // Royalti transparan
-
-    setArticles(prevArticles => prevArticles.map(a => {
-      if (a.id === article.id) {
-        return {
-          ...a,
-          views: nextViews,
-          royaltyAmount: nextRoyalty
-        };
+    // 1. CEK SESI PEMBACA (ANTI-SPAM & ANTI-PEMBENGKAKAN ROYALTI PALSU)
+    // Hanya hitung +1 tayangan jika pembaca ini belum pernah membaca artikel ini dalam sesi browser aktifnya.
+    const sessionKey = `mediakita_viewed_${article.id}`;
+    let isNewRead = false;
+    try {
+      if (typeof window !== 'undefined' && !sessionStorage.getItem(sessionKey)) {
+        sessionStorage.setItem(sessionKey, '1');
+        isNewRead = true;
       }
-      return a;
-    }));
+    } catch (e) {
+      isNewRead = false;
+    }
+
+    const nextViews = isNewRead ? (article.views || 0) + 1 : (article.views || 0);
+    const nextRoyalty = Math.round(nextViews * 25); // Royalti transparan berbasis pembaca murni
+
+    if (isNewRead) {
+      setArticles(prevArticles => prevArticles.map(a => {
+        if (a.id === article.id) {
+          return {
+            ...a,
+            views: nextViews,
+            royaltyAmount: nextRoyalty
+          };
+        }
+        return a;
+      }));
+    }
 
     setSelectedArticle({
       ...article,
@@ -613,9 +607,12 @@ export default function App() {
                 <span>{selectedArticle.publishedAt}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2.5">
-                <span className="flex items-center gap-1.5 text-stone-800 font-semibold bg-stone-100 px-2.5 py-1 rounded border border-stone-200">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
-                  <span>{(selectedArticle.views || 0).toLocaleString('id-ID')} Pembaca (Real-Time)</span>
+                <span className="flex items-center gap-1.5 text-stone-800 font-medium bg-stone-100 px-2.5 py-1 rounded border border-stone-200">
+                  <svg className="w-3.5 h-3.5 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span>{(selectedArticle.views || 0).toLocaleString('id-ID')} Pembaca</span>
                 </span>
                 <span>&bull;</span>
                 <span className="text-stone-500 text-[11px] font-medium">
@@ -650,7 +647,7 @@ export default function App() {
                   <span>Jurnalisme Warga Independen &amp; Terbuka</span>
                 </h4>
                 <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                  Liputan ini telah dibaca <strong className="text-stone-900">{(selectedArticle.views || 0).toLocaleString('id-ID')} kali</strong> secara real-time oleh publik. Dukung jurnalisme warga dengan memberikan apresiasi atau menyebarkan informasi ini ke komunitas Anda.
+                  Liputan ini telah dibaca <strong className="text-stone-900">{(selectedArticle.views || 0).toLocaleString('id-ID')} kali</strong> oleh pembaca publik. Dukung jurnalisme warga dengan memberikan apresiasi atau menyebarkan informasi ini ke komunitas Anda.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2 flex-shrink-0">

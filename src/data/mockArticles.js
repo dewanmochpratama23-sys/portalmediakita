@@ -30,11 +30,11 @@ Masyarakat dan pihak berwenang diharapkan dapat turun tangan memberikan pendampi
     coverImage: "/images/dilema-warisan.jpg",
     publishedAt: "Baru saja",
     readingTime: "2 min baca",
-    views: 14,
-    likes: 3,
+    views: 1,
+    likes: 0,
     status: "published",
     isLead: true,
-    royaltyAmount: 350
+    royaltyAmount: 25
   },
   {
     id: 1,
