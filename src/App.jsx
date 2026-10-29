@@ -158,6 +158,47 @@ export default function App() {
     setCurrentView('dashboard');
   };
 
+  // =========================================================================
+  // FUNGSI KHUSUS FOUNDER: TERBITKAN ARTIKEL LANGSUNG TAYANG (TANPA ANTRE)
+  // =========================================================================
+  const handlePublishFounderArticle = (articleData) => {
+    const wordsCount = articleData.content ? articleData.content.split(/\s+/).length : 200;
+    const readMinutes = Math.max(2, Math.round(wordsCount / 160));
+
+    const newArt = {
+      id: `founder-${Date.now()}`,
+      title: articleData.title,
+      category: articleData.category || 'Tajuk Rencana',
+      excerpt: articleData.excerpt || (articleData.content ? articleData.content.substring(0, 160) + '...' : 'Catatan resmi Redaksi MediaKita.'),
+      content: articleData.content,
+      coverImage: articleData.coverImage || "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop&q=80",
+      readingTime: `${readMinutes} min baca`,
+      publishedAt: 'Baru saja',
+      views: 24,
+      likes: 5,
+      isLead: Boolean(articleData.isLead),
+      royaltyAmount: 0,
+      author: {
+        name: articleData.authorName || "Dewan Mochamad Pratama",
+        role: "Founder & Pemimpin Redaksi",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+        verified: true,
+        isKtpVerified: true
+      },
+      status: 'published'
+    };
+
+    setArticles(prevArticles => {
+      let updated = prevArticles;
+      if (newArt.isLead) {
+        updated = updated.map(a => ({ ...a, isLead: false }));
+      }
+      return [newArt, ...updated];
+    });
+
+    alert(`✓ SELAMAT! Artikel Founder:\n"${newArt.title}"\nresmi TAYANG LANGSUNG di halaman utama Portal MediaKita!`);
+  };
+
   const handleApproveArticle = (item) => {
     const approved = {
       ...item,
@@ -432,6 +473,7 @@ export default function App() {
             onTakedownArticle={handleTakedownArticle}
             onApproveKtp={handleApproveKtp}
             onRejectKtp={handleRejectKtp}
+            onPublishFounderArticle={handlePublishFounderArticle}
           />
         )}
       </main>
