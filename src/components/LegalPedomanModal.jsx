@@ -57,7 +57,7 @@ export default function LegalPedomanModal({ isOpen, onClose }) {
               3. Mekanisme Hak Jawab &amp; Hak Koreksi (Gratis 100%)
             </h4>
             <p className="text-stone-600">
-              Sesuai UU Pers No. 40 Tahun 1999 dan Pedoman Media Siber, pihak yang merasa dirugikan oleh pemberitaan di MediaKita berhak menyampaikan <strong>Hak Jawab</strong> atau <strong>Hak Koreksi</strong> secara cuma-cuma (tanpa dipungut biaya apa pun) melalui surel: <span className="font-mono font-bold text-stone-900">redaksi@mediakita.id</span>. Redaksi wajib melayani dan mempublikasikan hak jawab tersebut sesegera mungkin.
+              Sesuai UU Pers No. 40 Tahun 1999 dan Pedoman Media Siber, pihak yang merasa dirugikan oleh pemberitaan di MediaKita berhak menyampaikan <strong>Hak Jawab</strong> atau <strong>Hak Koreksi</strong> secara cuma-cuma (tanpa dipungut biaya apa pun) melalui surel resmi: <a href="mailto:redaksi@portalmediakita.com" className="font-mono font-bold text-stone-900 underline hover:text-red-900">redaksi@portalmediakita.com</a>. Redaksi wajib melayani dan mempublikasikan hak jawab tersebut sesegera mungkin.
             </p>
           </section>
 

@@ -91,7 +91,7 @@ export default function Footer({ userRole, onNavigate, onOpenLogin, onOpenPedoma
                 </button>
               </li>
               <li>
-                <a href="mailto:redaksi@mediakita.id" className="hover:text-stone-950">
+                <a href="mailto:redaksi@portalmediakita.com" className="hover:text-stone-950">
                   Bantuan &amp; Kontak Redaksi
                 </a>
               </li>
@@ -162,7 +162,9 @@ export default function Footer({ userRole, onNavigate, onOpenLogin, onOpenPedoma
             
             <div className="pt-3 text-[10px] text-stone-500">
               <span className="font-bold text-stone-700 block">Surel Pengaduan &amp; Hak Jawab:</span>
-              <span className="font-mono text-stone-900">redaksi@mediakita.id</span>
+              <a href="mailto:redaksi@portalmediakita.com" className="font-mono text-stone-900 font-bold hover:text-red-900 underline">
+                redaksi@portalmediakita.com
+              </a>
             </div>
           </div>
 
