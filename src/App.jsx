@@ -12,8 +12,8 @@ import LoginModal from './components/LoginModal';
 import LegalPedomanModal from './components/LegalPedomanModal';
 import { initialArticles, pendingArticles as initialPending } from './data/mockArticles';
 
-const STORAGE_KEY_ARTICLES = 'mediakita_portal_articles_v3';
-const STORAGE_KEY_PENDING = 'mediakita_portal_pending_v3';
+const STORAGE_KEY_ARTICLES = 'mediakita_portal_articles_v5';
+const STORAGE_KEY_PENDING = 'mediakita_portal_pending_v5';
 
 export default function App() {
   // ROLE PENGGUNA:
@@ -33,13 +33,26 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Koreksi otomatis jika ada artikel founder lama yang nilainya masih 24 (bug template awal)
           return parsed.map(a => {
-            if (a.id && String(a.id).startsWith('founder-') && a.views === 24 && a.likes === 5) {
-              return { ...a, views: 0, likes: 0, royaltyAmount: 0 };
+            // Bersihkan jika ada angka loop glitch dari sesi sebelumnya (>10.000)
+            if ((a.views || 0) > 10000 && a.id !== 1) {
+              const matchedInitial = initialArticles.find(i => String(i.id) === String(a.id));
+              return { ...a, views: matchedInitial ? matchedInitial.views : 240 };
             }
             return a;
           });
+        }
+      }
+
+      // Bersihkan dan ambil artikel buatan founder dari sesi lama jika ada
+      const oldSaved = localStorage.getItem('mediakita_portal_articles_v3');
+      if (oldSaved) {
+        const parsedOld = JSON.parse(oldSaved);
+        if (Array.isArray(parsedOld)) {
+          const founderArticles = parsedOld.filter(a => String(a.id).startsWith('founder-') && a.id !== 'founder-dewan-01');
+          if (founderArticles.length > 0) {
+            return [...founderArticles.map(a => ({ ...a, views: Math.min(a.views || 0, 50) })), ...initialArticles];
+          }
         }
       }
     } catch (e) {
@@ -105,7 +118,41 @@ export default function App() {
   // REF AGAR ROUTING TAUTAN HANYA DIPERIKSA SEKALI SAAT BUKA HALAMAN (MENCEGAH LOOP SCROLL)
   const initialUrlCheckedRef = useRef(false);
 
-  // 1. DETEKSI SHORTCUT RAHASIA & HASH URL (#admin, #penulis)
+  // FUNGSI NAVIGASI KEMBALI KE BERANDA (DIGUNAKAN UNIVERSAL DI SEMUA TOMBOL BACK)
+  const handleBackToHome = () => {
+    setSelectedArticle(null);
+    setCurrentView('portal');
+    try {
+      window.history.pushState(null, '', window.location.pathname);
+    } catch (e) {}
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 1. DUKUNGAN TOMBOL BACK BROWSER & HP ANDROID/IPHONE (POPSTATE EVENT LISTENER)
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const bacaId = params.get('baca');
+      if (bacaId) {
+        const target = articles.find(a => String(a.id) === String(bacaId));
+        if (target) {
+          setSelectedArticle(target);
+          setCurrentView('article-detail');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+      }
+      // Jika URL tidak memuat ?baca (user menekan tombol Back HP/Browser untuk ke beranda)
+      setSelectedArticle(null);
+      setCurrentView('portal');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [articles]);
+
+  // 2. DETEKSI SHORTCUT RAHASIA & HASH URL (#admin, #penulis)
   useEffect(() => {
     const checkHash = () => {
       const hash = window.location.hash.toLowerCase();
@@ -135,7 +182,7 @@ export default function App() {
     };
   }, []);
 
-  // 2. DETEKSI DIRECT LINK ARTIKEL (?baca=ID) — HANYA SEKALI SAAT HALAMAN PERTAMA DIBUKA
+  // 3. DETEKSI DIRECT LINK ARTIKEL (?baca=ID) — HANYA SEKALI SAAT HALAMAN PERTAMA DIBUKA
   useEffect(() => {
     if (initialUrlCheckedRef.current) return;
     initialUrlCheckedRef.current = true;
@@ -147,14 +194,33 @@ export default function App() {
       if (bacaId) {
         const target = articles.find(a => String(a.id) === String(bacaId));
         if (target) {
-          setSelectedArticle(target);
-          setCurrentView('article-detail');
+          handleSelectArticle(target);
         }
       }
     } catch (e) {
       console.warn("Direct article url parse error", e);
     }
   }, []);
+
+  // 4. REAL-TIME PULSE: TAMBAH PEMBACA AKTIF SAAT ARTIKEL SEDANG DIBUKA
+  useEffect(() => {
+    if (currentView !== 'article-detail' || !selectedArticle) return;
+
+    const interval = setInterval(() => {
+      setSelectedArticle(prev => {
+        if (!prev) return null;
+        const newViews = (prev.views || 0) + 1;
+        setArticles(all => all.map(a => a.id === prev.id ? { ...a, views: newViews, royaltyAmount: Math.round(newViews * 25) } : a));
+        return {
+          ...prev,
+          views: newViews,
+          royaltyAmount: Math.round(newViews * 25)
+        };
+      });
+    }, 15000); // Bertambah setiap 15 detik secara alami saat sedang membaca
+
+    return () => clearInterval(interval);
+  }, [currentView, selectedArticle?.id]);
 
   const handleOpenLogin = (role) => {
     setLoginTargetRole(role);
@@ -402,8 +468,12 @@ export default function App() {
         currentAuthor={currentAuthor}
         currentView={currentView}
         setCurrentView={(view) => {
-          setCurrentView(view);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (view === 'portal') {
+            handleBackToHome();
+          } else {
+            setCurrentView(view);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         }}
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
@@ -506,18 +576,17 @@ export default function App() {
               </div>
             )}
 
-            <button
-              onClick={() => {
-                setCurrentView('portal');
-                try {
-                  window.history.pushState(null, '', window.location.pathname);
-                } catch (e) {}
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="text-xs font-semibold text-stone-600 hover:text-stone-950 mb-4 inline-block"
-            >
-              &larr; Kembali ke Beranda Utama
-            </button>
+            {/* Tombol Kembali ke Beranda Utama (Mendukung Desktop & Mobile) */}
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={handleBackToHome}
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-stone-100 text-stone-800 font-bold text-xs rounded border border-stone-300 transition shadow-sm cursor-pointer"
+              >
+                <span className="text-sm font-black">&larr;</span>
+                <span>Kembali ke Beranda Utama</span>
+              </button>
+            </div>
 
             <span className="text-[10px] font-bold text-red-900 uppercase tracking-widest block mb-1">
               {selectedArticle.category}
@@ -534,14 +603,18 @@ export default function App() {
                 <span>&bull;</span>
                 <span>{selectedArticle.publishedAt}</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <span className="flex items-center gap-1.5 text-stone-800 font-semibold bg-stone-100 px-2.5 py-1 rounded border border-stone-200">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
                   <span>{(selectedArticle.views || 0).toLocaleString('id-ID')} Pembaca (Real-Time)</span>
                 </span>
                 <span>&bull;</span>
-                <span className="text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 border border-emerald-300 rounded">
-                  Royalti: Rp {(selectedArticle.royaltyAmount || 0).toLocaleString('id-ID')}
+                <span className="text-stone-500 text-[11px] font-medium">
+                  {selectedArticle.readingTime || '3 min baca'}
+                </span>
+                <span>&bull;</span>
+                <span className="text-emerald-800 text-[11px] font-bold bg-emerald-50 px-2 py-0.5 border border-emerald-200 rounded">
+                  ✓ Liputan Terverifikasi
                 </span>
               </div>
             </div>
@@ -564,11 +637,11 @@ export default function App() {
             <div className="mt-10 p-5 bg-[#F5F2EB] border border-stone-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h4 className="font-bold text-xs uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
-                  <span>⚡</span>
-                  <span>Dukungan Pembaca &amp; Bagi Hasil Royalti</span>
+                  <span>📰</span>
+                  <span>Jurnalisme Warga Independen &amp; Terbuka</span>
                 </h4>
                 <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                  Artikel ini telah dibaca <strong className="text-stone-900">{(selectedArticle.views || 0).toLocaleString('id-ID')} kali</strong> secara real-time dan terakumulasi royalti <strong className="text-emerald-800">Rp {(selectedArticle.royaltyAmount || 0).toLocaleString('id-ID')}</strong> (skema bagi hasil 70% penulis).
+                  Liputan ini telah dibaca <strong className="text-stone-900">{(selectedArticle.views || 0).toLocaleString('id-ID')} kali</strong> secara real-time oleh publik. Dukung jurnalisme warga dengan memberikan apresiasi atau menyebarkan informasi ini ke komunitas Anda.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
@@ -658,8 +731,12 @@ export default function App() {
       <Footer
         userRole={userRole}
         onNavigate={(view) => {
-          setCurrentView(view);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (view === 'portal') {
+            handleBackToHome();
+          } else {
+            setCurrentView(view);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         }}
         onOpenLogin={handleOpenLogin}
         onOpenPedoman={() => setPedomanModalOpen(true)}
